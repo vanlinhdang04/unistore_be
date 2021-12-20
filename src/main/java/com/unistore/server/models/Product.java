@@ -106,6 +106,22 @@ public class Product {
         return Image;
     }
 
+    public int getQuantity() {
+        return Quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        Quantity = quantity;
+    }
+
+    public int getSold() {
+        return Sold;
+    }
+
+    public void setSold(int sold) {
+        Sold = sold;
+    }
+
     public void setImage(String image) {
         Image = image;
     }

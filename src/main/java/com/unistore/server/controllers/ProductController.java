@@ -7,11 +7,13 @@ import com.unistore.server.repositories.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping(path = "/api/v1/products")
 public class ProductController {
@@ -20,16 +22,18 @@ public class ProductController {
     private ProductRepository repository;
 
     @GetMapping("")
-    //  This request is: http://localhost:8080/api/v1/Products/
-//    List<Product> getAllProducts() {
-//        return repository.findAll();
-//    }
     ResponseEntity<ResponseObject> getAllProducts(
             @RequestParam(name = "page", required = false, defaultValue = "1") int page,
-            @RequestParam(name = "limit", required = false, defaultValue = "2") int limit) {
+            @RequestParam(name = "limit", required = false, defaultValue = "6") int limit,
+            @RequestParam(name = "search", required = false, defaultValue = "") String search,
+            @RequestParam(name = "catalog", required = false, defaultValue = "") String catalog,
+            @RequestParam(name = "processer", required = false, defaultValue = "") String processer,
+            @RequestParam(name = "hardDrive", required = false, defaultValue = "") String hardDrive
+    ) {
         int offset = limit * (page - 1);
-        int totalRow = repository.findAll().size();
-        int totalPage = (int) Math.ceil(totalRow / limit);
+        List<Product> foundProducts = repository.findByQuery(search, catalog, processer, hardDrive);
+        int totalRow = foundProducts.size();
+        int totalPage = (int) Math.ceil( (float)totalRow / limit );
         Pagination pagination = new Pagination(page, totalPage, totalRow);
 
         if(page<0 || page>totalPage) {
@@ -38,7 +42,35 @@ public class ProductController {
             );
         }
 
-        List<Product> products = repository.findByPage(limit, offset);
+        List<Product> products = repository.findByPage(limit, offset, search, catalog, processer, hardDrive);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                new ResponseObject("ok", "Request all products successfully", products, pagination)
+        );
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    ResponseEntity<ResponseObject> getAll(
+            @RequestParam(name = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(name = "limit", required = false, defaultValue = "6") int limit,
+            @RequestParam(name = "search", required = false, defaultValue = "") String search,
+            @RequestParam(name = "catalog", required = false, defaultValue = "") String catalog,
+            @RequestParam(name = "processer", required = false, defaultValue = "") String processer,
+            @RequestParam(name = "hardDrive", required = false, defaultValue = "") String hardDrive
+    ) {
+        int offset = limit * (page - 1);
+        List<Product> foundProducts = repository.findByQuery(search, catalog, processer, hardDrive);
+        int totalRow = foundProducts.size();
+        int totalPage = (int) Math.ceil( (float)totalRow / limit );
+        Pagination pagination = new Pagination(page, totalPage, totalRow);
+
+        if(page<0 || page>totalPage) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ResponseObject("failed", "Page not found", "", "")
+            );
+        }
+
+        List<Product> products = repository.findByAdmin(limit, offset, search, catalog, processer, hardDrive);
         return ResponseEntity.status(HttpStatus.OK).body(
                 new ResponseObject("ok", "Request all products successfully", products, pagination)
         );
@@ -76,6 +108,7 @@ public class ProductController {
 
     //update, upsert = update if found, otherwise insert http://localhost:8080/api/v1/Products/{id}
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
     ResponseEntity<ResponseObject> updateProduct(@RequestBody Product newProduct, @PathVariable Long id) {
         Product updateProduct = repository.findById(id)
                                         .map(product -> {
@@ -91,6 +124,9 @@ public class ProductController {
                                             product.setOS(newProduct.getOS());
                                             product.setProcesser(newProduct.getProcesser());
                                             product.setWireless(newProduct.getWireless());
+                                            product.setQuantity(newProduct.getQuantity());
+                                            product.setSold(newProduct.getSold());
+                                            product.setStatus(newProduct.getStatus());
                                             return repository.save(product);
                                         }).orElseGet(() -> {
                                             newProduct.setProductId(id);
@@ -120,6 +156,16 @@ public class ProductController {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new ResponseObject("failed", "Connot find product to delete", "")
+        );
+    }
+
+    @GetMapping("/mostsold")
+    @PreAuthorize("hasRole('USER') or hasRole('MODERATOR') or hasRole('ADMIN')")
+    public ResponseEntity<?> listProductMostSold() {
+        List<Product> list = repository.findByMostSold();
+
+        return ResponseEntity.ok().body(
+                new ResponseObject("ok", "List product most sold", list)
         );
     }
 }

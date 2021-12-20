@@ -1,8 +1,11 @@
 package com.unistore.server.database;
 
 
+import com.unistore.server.common.ERole;
 import com.unistore.server.models.Product;
+import com.unistore.server.models.Role;
 import com.unistore.server.repositories.ProductRepository;
+import com.unistore.server.repositories.RoleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -14,11 +17,11 @@ public class Database {
         // logger
         private static final Logger logger = LoggerFactory.getLogger(Database.class);
     @Bean
-    CommandLineRunner initDatabase(ProductRepository productRepository) {
+    CommandLineRunner initDatabase(ProductRepository productRepository, RoleRepository roleRepository) {
         return  new CommandLineRunner() {
             @Override
             public void run(String... args) throws Exception {
-                if(productRepository.findAll().size() == 0) {
+                if (productRepository.findAll().size() == 0) {
                     Product product1 = new Product("Laptop Acer Nitro 5 Gaming AN515", "Acer", 1322.37, "https://i.ibb.co/3F9wWqv/image.png", "Acer Nitro 5 Gaming AN515 57 727J i7 (NH.QD9SV.005.) sở hữu vẻ ngoài cá tính, nổi bật và được tích hợp bộ vi xử lý Intel thế hệ 11 tân tiến, card đồ hoạ rời NVIDIA GeForce RTX, hứa hẹn mang đến các trải nghiệm tuyệt vời cho người dùng.",
                             "Windows 10 Home SL", "i7, 11800H, 2.30GHz", "NVIDIA GeForce RTX3050Ti, 4 GB", "8GB, DDR4 2 khe", "512 GB SSD NVMe PCIe", "Bluetooth 5.1, Wi-Fi 6 (802.11ax)", "4-cell Li-ion, 57 Wh", 10);
                     Product product2 = new Product("Laptop MSI Katana Gaming GF66", "MSI", 1282.68, "https://i.ibb.co/qkvQFWd/image.png", "Laptop MSI Katana GF66 11UC i7 (224VN) mang vẻ ngoài cơ động cùng cấu hình mạnh mẽ, đẩy nhanh quá trình xử lý mọi tác vụ hay sẵn sàng đồng hành cùng bạn chiến mọi thể loại game đầy kịch tính.",
@@ -82,6 +85,17 @@ public class Database {
                     logger.info("Insert data: "+productRepository.save(product18));
                     logger.info("Insert data: "+productRepository.save(product19));
                     logger.info("Insert data: "+productRepository.save(product20));
+                }
+
+                if (roleRepository.findAll().size() == 0) {
+                    Role admin = new Role(ERole.ROLE_ADMIN);
+                    Role mod = new Role(ERole.ROLE_MODERATOR);
+                    Role user = new Role(ERole.ROLE_USER);
+
+                    //Insert role to table roles
+                    logger.info(("Insert role: "+ roleRepository.save(admin)));
+                    logger.info(("Insert role: "+ roleRepository.save(mod)));
+                    logger.info(("Insert role: "+ roleRepository.save(user)));
                 }
             }
         };
